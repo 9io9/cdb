@@ -1,0 +1,1 @@
+create table test_tab (col1:int, col2:charArr, col3:int);
