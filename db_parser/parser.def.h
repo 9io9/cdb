@@ -1,20 +1,14 @@
 //
-// Created by mario on 2024/8/28.
+// Created by mario on 2024/9/1.
 //
 
-#ifndef CDB_DEF_H
-#define CDB_DEF_H
+#ifndef PARSER_DEF_H
+#define PARSER_DEF_H
 
-typedef enum CDBTableColumnType {
-    Integer = 0,
-    CharArray
-}CDBTableColumnType;
+#include "../third_party/cstr/cstr.def.h"
+#include "../third_party/cvla/cvla.def.h"
 
-typedef struct TableColumn {
-    CDBTableColumnType _col_type;
-    size_t _col_offset;
-    CStringRef* _col_name;
-}TableColumn;
+#define FUNC_ASSERT(...)
 
 typedef enum CDBCmdType {
     Create = 0,
@@ -46,4 +40,4 @@ typedef struct CDBCmd {
     }_cdb_cmd;
 }CDBCmd;
 
-#endif //CDB_DEF_H
+#endif //PARSER_DEF_H

@@ -3,14 +3,29 @@ project(cdb C)
 
 set(CMAKE_C_STANDARD 17)
 
-add_subdirectory(cstr)
+execute_process(COMMAND git clone git@github.com:9io9/cstr.git WORKING_DIRECTORY third_party)
 
-add_subdirectory(cvla)
+add_subdirectory(third_party/cstr)
+
+add_subdirectory(third_party/cvla)
+
+add_subdirectory(third_party/cprt)
 
 add_executable(cdb cdb.c
-        cdb.def.h
-        cdb.err.h)
+        cdb.err.h
+        db_parser/parser.c
+        db_parser/parser.h
+        db_parser/parser.err.h
+        db_parser/parser.def.h
+        db_engine/table.def.h
+        db_shell/shell.c
+        db_shell/shell.h
+        db_shell/shell.err.h
+        db_engine/engine.c
+        db_engine/engine.h
+        db_engine/engine.err.h
+)
 
-target_link_libraries(cdb cstr cvla)
+target_link_libraries(cdb cstr cvla cprt)
 
 add_compile_definitions(__MACHINE_WORD_SIZE__=64)

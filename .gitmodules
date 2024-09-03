@@ -1,0 +1,9 @@
+[submodule "third_party/cstr"]
+	path = third_party/cstr
+	url = git@github.com:9io9/cstr.git
+[submodule "third_party/cvla"]
+	path = third_party/cvla
+	url = git@github.com:9io9/cvla.git
+[submodule "third_party/cprt"]
+	path = third_party/cprt
+	url = git@github.com:9io9/cprt.git

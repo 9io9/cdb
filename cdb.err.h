@@ -6,10 +6,6 @@
 
 typedef enum CDBStatusCode {
     CDBSuccess = 0,
-    CDBInvalidCharacter,
-    CDBInvalidToken,
-    CDBInvalidSyntax,
-    CDBInvalidCmdType,
 }CDBStatusCode;
 
 #endif //CDB_ERR_H
