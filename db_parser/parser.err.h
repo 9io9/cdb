@@ -22,10 +22,7 @@ typedef enum CDBParserStatusCode {
     __NAME__(CmdFmtError),
     // invalid function arguments given when calling parser's funcs
     __NAME__(FuncArgError),
-    // invalid command type given when calling parser's funcs
-    __NAME__(CmdTypeError),
-    // invalid create command type given when calling parser's funcs
-    __NAME__(CrtCmdTypeError),
+    __NAME__(ShowCmdAttrTypeError),
 }CDBParserStatusCode;
 
 #undef __NAME__

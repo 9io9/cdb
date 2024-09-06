@@ -17,8 +17,6 @@ extern CDBParserStatusCode parse_tab_cols(CStringRef* tokens, size_t tokens_size
 
 extern CDBParserStatusCode parse_tokens(CStringRef* tokens, size_t tokens_size, CDBCmd* cmd);
 
-extern CDBParserStatusCode cmd_fprint(FILE* f, CDBCmd* cmd);
-
 // no func arg check version
 
 FUNC_ASSERT(TOKEN != NULL, COL_TYPE != NULL)
@@ -29,8 +27,5 @@ extern CDBParserStatusCode parse_tab_cols_nocheck(CStringRef* tokens, size_t tok
 
 FUNC_ASSERT(TOKENS != NULL, TOKENS_SIZE != 0, CMD != NULL)
 extern CDBParserStatusCode parse_tokens_nocheck(CStringRef* tokens, size_t tokens_size, CDBCmd* cmd);
-
-FUNC_ASSERT(F != NULL, CMD != NULL)
-extern CDBParserStatusCode cmd_fprint_nocheck(FILE* f, CDBCmd* cmd);
 
 #endif //PARSER_H

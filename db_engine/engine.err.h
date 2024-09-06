@@ -19,6 +19,14 @@ typedef enum CDBEngineStatusCode {
     __NAME__(CrtDupTabError),
     // table's name too long to create
     __NAME__(CrtTabNameTooLongError),
+    // name of table to be shown not exist
+    __NAME__(ShowTabNotExistError),
+    // invalid show command type when command is executed by engine
+    __NAME__(ShowCmdTypeError),
+    // invalid show command attr type when command is executed by engine
+    __NAME__(ShowCmdAttrTypeError),
 }CDBEngineStatusCode;
+
+#undef __NAME__
 
 #endif //ENGINE_ERR_H

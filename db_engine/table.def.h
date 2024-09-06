@@ -15,7 +15,6 @@ typedef enum CDBTableColumnType {
 
 typedef struct CDBTableColumn {
     CDBTableColumnType _col_type;
-    size_t _col_offset;
     CStringRef* _col_name;
 }CDBTableColumn;
 
@@ -44,11 +43,13 @@ typedef struct CDBDiskTableHeader {
     char _tab_end_offset[8];
     char _tab_cols_num[8];
     CDBDiskTableColumn _tab_cols[(DISK_PGSIZE - 24) / sizeof(CDBDiskTableColumn)];
+    char _tab_pad[(DISK_PGSIZE - 24) % sizeof(CDBDiskTableColumn)];
 #elif __MACHINE_WORD_SIZE__ == 32
     char _tab_version[4];
     char _tab_end_offset[4];
     char _tab_cols_num[4];
     CDBDiskTableColumn _tab_cols[(DISK_PGSIZE - 12) / sizeof(CDBDiskTableColumn)];
+    char _tab_pad[(DISK_PGSIZE - 12) % sizeof(CDBDiskTableColumn)];
 #endif
 }CDBDiskTableHeader;
 

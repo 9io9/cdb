@@ -9,6 +9,9 @@
 
 #include "db_parser/parser.h"
 #include "db_shell/shell.h"
+#include "db_display/display.h"
+#include "db_apis/name.h"
+#include "db_engine/engine.h"
 
 #include "cdb.err.h"
 
@@ -30,9 +33,17 @@ static void cdb_main(int argc, char* argv[]) {
     cstr_new_nocheck(0, NULL, &linebuffer);
 
     while (true) {
-        if (read_line(stdin, linebuffer) != CDBSuccess) {
-            cstr_clean_nocheck(linebuffer);
-            continue;
+        switch (read_line(stdin, linebuffer)) {
+            case __SHELL_ERR__(InvalidChar):
+                PERR("Invalid Character: character from input is not in valid charset");
+                cstr_clean_nocheck(linebuffer);
+                continue;
+
+            case __SHELL_SUCCESS__:
+                break;
+
+            default:
+                break;
         }
 
         switch (cstr_split_nocheck(linebuffer, ' ', &tokenbuffer_len, &tokenbuffer)) {
@@ -42,6 +53,26 @@ static void cdb_main(int argc, char* argv[]) {
                 switch (parse_tokens(tokenbuffer, tokenbuffer_len, &cmd)) {
                     case CDBSuccess:
                         cmd_fprint(stdout, &cmd);
+
+                        switch (exec_command(&cmd)) {
+                            case __ENGINE_ERR__(CrtDupTab):
+                                PERR("Command ExecErr: Table need to create already exist");
+                                break;
+                            case __ENGINE_ERR__(CmdType):
+                                PERR("Command ExecErr: Unknown Command Type");
+                                break;
+                            case __ENGINE_ERR__(CrtCmdType):
+                                PERR("Command ExecErr: Unknown Create Command Type");
+                                break;
+                            case __ENGINE_ERR__(ShowCmdType):
+                                PERR("Command ExecErr: Unknown Show Command Hierachy");
+                                break;
+                            case __ENGINE_ERR__(ShowCmdAttrType):
+                                PERR("Command ExecErr: Unknown Show Command Attr");
+                                break;
+                            default:
+                                break;
+                        }
                         break;
                     default:
                         PERR("Invalid Command: Invalid Token Or Syntax");

@@ -24,6 +24,10 @@ add_executable(cdb cdb.c
         db_engine/engine.c
         db_engine/engine.h
         db_engine/engine.err.h
+        db_display/display.h
+        db_display/display.c
+        db_display/display.err.h
+        db_apis/name.h
 )
 
 target_link_libraries(cdb cstr cvla cprt)

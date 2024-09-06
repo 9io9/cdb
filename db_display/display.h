@@ -30,17 +30,23 @@ extern CDBDisplayStatusCode cmd_fprint(FILE* f, CDBCmd* cmd);
 
 FUNC_ASSERT(F != NULL, KEY != NULL, VALUE != NULL)
 extern CDBDisplayStatusCode kv_ref_fprint_nocheck(FILE* f, const char* key, CStringRef* value);
-// TODO: FUNC_ASSERT
+
+FUNC_ASSERT(F != NULL, KEY != NULL, VALUE != NULL)
 extern CDBDisplayStatusCode kv_str_fprint_nocheck(FILE* f, const char* key, const char* value);
 
+FUNC_ASSERT(F != NULL, TITLE != NULL)
 extern CDBDisplayStatusCode title_fprint_nocheck(FILE* f, const char* title, const char tsep);
 
+FUNC_ASSERT(F != NULL)
 extern CDBDisplayStatusCode end_fprint_nocheck(FILE* f, const char tsep);
 
+FUNC_ASSERT(F != NULL, KEY != NULL, COLS != NULL, COL_SIZE != 0)
 extern CDBDisplayStatusCode kv_tabcols_fprint_nocheck(FILE* f, const char* key, CDBTableColumn* cols, size_t cols_size);
 
+FUNC_ASSERT(F != NULL, COL != NULL)
 extern CDBDisplayStatusCode kv_tabcol_fprint_nocheck(FILE* f, CDBTableColumn* col);
 
+FUNC_ASSERT(F != NULL, CMD != NULL)
 extern CDBDisplayStatusCode cmd_fprint_nocheck(FILE* f, CDBCmd* cmd);
 
 #endif //DISPLAY_H

@@ -8,23 +8,39 @@
 #include "../third_party/cstr/cstr.def.h"
 #include "../third_party/cvla/cvla.def.h"
 
-#define FUNC_ASSERT(...)
+#define __NAME__(n) CDBCmd ## n
 
 typedef enum CDBCmdType {
-    Create = 0,
-    Select,
-    Insert,
-    Remove,
-    Modify,
+    __NAME__(Create) = 0,
+    __NAME__(Select),
+    __NAME__(Insert),
+    __NAME__(Remove),
+    __NAME__(Modify),
+    __NAME__(Show)
 }CDBCmdType;
 
-typedef enum CDBCreateCmdType {
-    Table = 0,
-    DataBase
-}CDBCreateCmdType;
+#undef __NAME__
+
+#define __NAME__(n) CDBHier ## n
+
+typedef enum CDBHierachyType {
+    __NAME__(Table) = 0,
+    __NAME__(DataBase),
+}CDBHierachyType;
+
+#undef __NAME__
+
+#define __NAME__(n) CDBAttr ## n
+
+typedef enum CDBAttrType {
+    __NAME__(TableColumns) = 0,
+    __NAME__(TableRows)
+}CDBAttrType;
+
+#undef __NAME__
 
 typedef struct CDBCreateCmd {
-    CDBCreateCmdType _crt_type;
+    CDBHierachyType _crt_type;
     union {
         struct CreateTableCommand {
             CStringRef* _tab_name;
@@ -33,10 +49,17 @@ typedef struct CDBCreateCmd {
     }_cmd;
 }CDBCreateCmd;
 
+typedef struct CDBShowCmd {
+    CDBHierachyType _show_type;
+    CDBAttrType _show_detail_type;
+    CStringRef* _name;
+}CDBShowCmd;
+
 typedef struct CDBCmd {
     CDBCmdType _cdb_cmd_type;
     union {
         CDBCreateCmd _crt_cmd;
+        CDBShowCmd _show_cmd;
     }_cdb_cmd;
 }CDBCmd;
 

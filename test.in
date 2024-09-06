@@ -1,2 +1,3 @@
 create table test_tab (col1:int, col2:charArr, col3:int);
 create table _tab (col1:int);
+show table test_tab columns;

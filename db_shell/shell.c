@@ -7,11 +7,9 @@
 #include <stdbool.h>
 
 #include "../third_party/cstr/cstr.h"
+#include "../db_apis/name.h"
 
 #include "shell.err.h"
-
-#define __SHELL_ERR__(e) CDBShell ## e ## Error
-#define __SHELL_SUCCESS__ CDBShellSuccess
 
 static const char* SPEC_CHARSET = ",():";
 static const char* SEP_CHARSET = "_@$#";
@@ -70,9 +68,7 @@ CDBShellStatusCode read_line(FILE* f, CString* linebuffer) {
             cstr_pushc_nocheck(input_ch, linebuffer);
         } else {
             if (!is_sep(input_ch)) {
-                fprintf(stderr, "CDB Error: Invalid Character\n");
                 fflush(stdin);
-                fprintf(stdout, "cbd>");
                 return __SHELL_ERR__(InvalidChar);
             }
             cstr_pushc_nocheck(input_ch, linebuffer);
