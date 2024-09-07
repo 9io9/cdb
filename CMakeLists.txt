@@ -28,6 +28,14 @@ add_executable(cdb cdb.c
         db_display/display.c
         db_display/display.err.h
         db_apis/name.h
+        db_apis/access_func.h
+        db_engine/database.def.h
+        db_engine/engine.def.h
+        db_buffer/buffer.h
+        db_buffer/buffer.def.h
+        db_buffer/buffer.err.h
+        db_apis/consts.h
+        db_buffer/buffer.c
 )
 
 target_link_libraries(cdb cstr cvla cprt)

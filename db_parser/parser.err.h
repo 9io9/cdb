@@ -18,6 +18,7 @@ typedef enum CDBParserStatusCode {
     __NAME__(TabColFmtError),
     // unknown type is specified for a column in a command (e.g. create table _t (name:UNKNOWN_TYPE);)
     __NAME__(TabColTypeError),
+    __NAME__(TabColNameLenError),
     // wrong command format is given (e.g. create table _t (name:int) OTHER_WORDS...; or INVALID_WORDS...;)
     __NAME__(CmdFmtError),
     // invalid function arguments given when calling parser's funcs

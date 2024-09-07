@@ -19,37 +19,42 @@ typedef struct CDBTableColumn {
 }CDBTableColumn;
 
 typedef struct CDBDiskTableColumn {
+    char _col_name_len[1];
     char _col_type[4];
 #if __MACHINE_WORD_SIZE__ == 64
     char _col_offset[8];
-    char _col_name[116];
+#define TABCOL_NAME_MAX 50
+    char _col_name[51];
 #elif __MACHINE_WORD_SIZE__ == 32
     char _col_offset[4];
-    char _col_name[120];
+#define TABCOL_NAME_MAX 54
+    char _col_name[55];
 #endif
 }CDBDiskTableColumn;
 
 typedef struct CDBTableHeader {
-    size_t _tab_version;
+    size_t _tab_id;
+    size_t _cols_num;
+    size_t _rows_num;
+    time_t _tab_crt_timestamp;
     size_t _tab_end_offset;
     CVLArray* _tab_cols;
 }CDBTableHeader;
 
-#define DISK_PGSIZE 4096
-
 typedef struct CDBDiskTableHeader {
+    char _file_type[8];
 #if __MACHINE_WORD_SIZE__ == 64
-    char _tab_version[8];
+    char _tab_id[8];
     char _tab_end_offset[8];
     char _tab_cols_num[8];
-    CDBDiskTableColumn _tab_cols[(DISK_PGSIZE - 24) / sizeof(CDBDiskTableColumn)];
-    char _tab_pad[(DISK_PGSIZE - 24) % sizeof(CDBDiskTableColumn)];
+    char _tab_rows_num[8];
+    char _tab_crt_timestamp[8];
 #elif __MACHINE_WORD_SIZE__ == 32
-    char _tab_version[4];
+    char _tab_id[4];
     char _tab_end_offset[4];
     char _tab_cols_num[4];
-    CDBDiskTableColumn _tab_cols[(DISK_PGSIZE - 12) / sizeof(CDBDiskTableColumn)];
-    char _tab_pad[(DISK_PGSIZE - 12) % sizeof(CDBDiskTableColumn)];
+    char _tab_rows_num[4];
+    char _tab_crt_timestamp[4];
 #endif
 }CDBDiskTableHeader;
 

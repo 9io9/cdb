@@ -3,7 +3,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-
 #include "third_party/cstr/cstr.h"
 #include "third_party/cprt/cprt.h"
 
@@ -51,7 +50,7 @@ static void cdb_main(int argc, char* argv[]) {
                 CDBCmd cmd = { 0 };
 
                 switch (parse_tokens(tokenbuffer, tokenbuffer_len, &cmd)) {
-                    case CDBSuccess:
+                    case __PARSER_SUCCESS__:
                         cmd_fprint(stdout, &cmd);
 
                         switch (exec_command(&cmd)) {
@@ -73,6 +72,9 @@ static void cdb_main(int argc, char* argv[]) {
                             default:
                                 break;
                         }
+                        break;
+                    case __PARSER_ERR__(TabColNameLen):
+                        PERR("Invalid Command: Columns' Name too long");
                         break;
                     default:
                         PERR("Invalid Command: Invalid Token Or Syntax");

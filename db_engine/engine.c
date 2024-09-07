@@ -5,43 +5,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "../third_party/cvla/cvla.h"
 
 #include "../db_parser/parser.def.h"
 #include "../db_apis/name.h"
+#include "../db_apis/access_func.h"
 #include "../db_display/display.h"
 
 #include "table.def.h"
+#include "engine.def.h"
 #include "engine.err.h"
 
-static char* crt_tab_name(const CDBCmd* cmd) {
-    return cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_name->_cstr_ref;
-}
-
-static size_t crt_tab_name_len(const CDBCmd* cmd) {
-    return cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_name->_cstr_ref_len;
-}
-
-static size_t crt_tab_cols_size(const CDBCmd* cmd) {
-    return cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_cols->_cvla_sz;
-}
-
-static size_t* crt_tab_cols_size_ptr(const CDBCmd* cmd) {
-    return &cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_cols->_cvla_sz;
-}
-
-static CDBTableColumn* crt_tab_cols(const CDBCmd* cmd) {
-    return cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_cols->_cvla;
-}
-
-static char* show_tab_name(const CDBCmd* cmd) {
-    return cmd->_cdb_cmd._show_cmd._name->_cstr_ref;
-}
-
-static size_t show_tab_name_len(const CDBCmd* cmd) {
-    return cmd->_cdb_cmd._show_cmd._name->_cstr_ref_len;
-}
 
 CDBEngineStatusCode exec_command(CDBCmd* cmd) {
     if (cmd == NULL) {
@@ -51,70 +28,72 @@ CDBEngineStatusCode exec_command(CDBCmd* cmd) {
     switch (cmd->_cdb_cmd_type) {
         case __CMD__(Create):
             switch (cmd->_cdb_cmd._crt_cmd._crt_type) {
-                case __HIER__(Table):
-                    char last_ch = crt_tab_name(cmd)[crt_tab_name_len(cmd)];
+                case __HIER__(Table): {
+                    char* tabcol_file_name = calloc(1, crtcmd_tabname_len(cmd) + sizeof(".columns"));
 
-                    crt_tab_name(cmd)[crt_tab_name_len(cmd)] = '\0';
+                    memcpy(tabcol_file_name, crtcmd_tabname(cmd), crtcmd_tabname_len(cmd));
 
-                    FILE* tab_file = fopen(crt_tab_name(cmd), "r");
+                    if (access(tabcol_file_name, F_OK) == 0) {
+                        free(tabcol_file_name);
+                        return __ENGINE_ERR__(CrtDupTab);
+                    }
 
-                    if (tab_file != NULL) {
-                        crt_tab_name(cmd)[crt_tab_name_len(cmd)] = last_ch;
+                    FILE* tab_file = fopen(tabcol_file_name, "wb+");
+
+                    memcpy(&tabcol_file_name[crtcmd_tabname_len(cmd)], ".columns", sizeof(".columns") - 1);
+
+                    if (access(tabcol_file_name, F_OK) == 0) {
+                        free(tabcol_file_name);
                         fclose(tab_file);
                         return __ENGINE_ERR__(CrtDupTab);
                     }
 
-                    tab_file = fopen(crt_tab_name(cmd), "wb+");
+                    FILE* col_file = fopen(tabcol_file_name, "wb+");
 
-                    crt_tab_name(cmd)[crt_tab_name_len(cmd)] = last_ch;
+                    time_t timestamp;
+                    size_t end_offset = DISKPG_SIZE;
+                    CDBFileType file_type = CDBTableFile;
+                    CDBDiskTableHeader disk_table_header = { 0 };
 
-                    size_t tab_end = DISK_PGSIZE;
+                    time(&timestamp);
 
-                    CDBDiskTableHeader* disk_table_header = calloc(1, sizeof(CDBDiskTableHeader));
+                    memcpy(disk_table_header._tab_cols_num, crtcmd_tabcols_size_ref(cmd), sizeof(size_t));
+                    memcpy(disk_table_header._file_type, &file_type, sizeof(CDBFileType));
+                    memcpy(disk_table_header._tab_crt_timestamp, &timestamp, sizeof(time_t));
 
-                    memcpy(disk_table_header->_tab_cols_num, crt_tab_cols_size_ptr(cmd), sizeof(size_t));
+                    for (size_t col_id = 0; col_id < crtcmd_tabcols_size(cmd); ++col_id) {
+                        CDBDiskTableColumn col;
 
-                    for (size_t col_id = 0; col_id < crt_tab_cols_size(cmd); ++col_id) {
+                        memcpy(col._col_name, crtcmd_tabcols(cmd)[col_id]._col_name->_cstr_ref, crtcmd_tabcols(cmd)[col_id]._col_name->_cstr_ref_len);
+                        col._col_name[TABCOL_NAME_MAX] = '\0';
 
-                        memcpy(
-                            disk_table_header->_tab_cols[col_id]._col_type,
-                            &crt_tab_cols(cmd)[col_id]._col_type,
-                            sizeof(CDBTableColumnType)
-                            );
+                        memcpy(col._col_name_len, &crtcmd_tabcols(cmd)[col_id]._col_name->_cstr_ref_len, sizeof(size_t));
+                        memcpy(col._col_type, &crtcmd_tabcols(cmd)[col_id]._col_type, sizeof(CDBTableColumnType));
+                        memcpy(col._col_offset, &end_offset, sizeof(size_t));
 
-                        if (crt_tab_cols(cmd)[col_id]._col_name->_cstr_ref_len > sizeof(disk_table_header->_tab_cols[col_id]._col_name) - 1) {
-                            free(disk_table_header);
-                            return __ENGINE_ERR__(CrtTabNameTooLong);
-                        }
-
-                        memcpy(
-                            disk_table_header->_tab_cols[col_id]._col_name,
-                            crt_tab_cols(cmd)[col_id]._col_name->_cstr_ref,
-                            crt_tab_cols(cmd)[col_id]._col_name->_cstr_ref_len
-                            );
-                        memcpy(
-                            disk_table_header->_tab_cols[col_id]._col_offset,
-                            &tab_end,
-                            sizeof(size_t)
-                            );
-
-                        tab_end += DISK_PGSIZE;
+                        fwrite(&col, sizeof(CDBDiskTableColumn), 1, col_file);
+                        end_offset += DISKPG_SIZE;
                     }
 
-                    fwrite(disk_table_header, sizeof(CDBDiskTableHeader), 1, tab_file);
+                    memcpy(disk_table_header._tab_end_offset, &end_offset, sizeof(size_t));
 
-                    cvla_clean_nocheck(cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_cols);
-                    free(disk_table_header);
+                    fwrite(&disk_table_header, sizeof(char), sizeof(CDBDiskTableHeader), tab_file);
+
+                    cvla_clean_nocheck(crtcmd_tabcols_cvla(cmd));
+                    free(tabcol_file_name);
+                    fflush(col_file);
+                    fclose(col_file);
                     fflush(tab_file);
                     fclose(tab_file);
 
                     fprintf(stdout, "Table ");
-                    fwrite(crt_tab_name(cmd), sizeof(char), crt_tab_name_len(cmd), stdout);
+                    fwrite(crtcmd_tabname(cmd), sizeof(char), crtcmd_tabname_len(cmd), stdout);
                     fprintf(stdout, " Created\n");
                     break;
-                case __HIER__(DataBase):
+                }
+                case __HIER__(DataBase): {
                     break;
-
+                }
                 default:
                     return __ENGINE_ERR__(CrtCmdType);
             }
@@ -129,58 +108,78 @@ CDBEngineStatusCode exec_command(CDBCmd* cmd) {
             break;
         case __CMD__(Show):
             switch (cmd->_cdb_cmd._show_cmd._show_type) {
-                case __HIER__(Table):
-                    char last_ch = show_tab_name(cmd)[show_tab_name_len(cmd)];
-                    show_tab_name(cmd)[show_tab_name_len(cmd)] = '\0';
+                case __HIER__(Table): {
+                    char* tabcol_file_name = calloc(1, showcmd_name_len(cmd) + sizeof(".columns"));
 
-                    FILE* tab_file = fopen(show_tab_name(cmd), "rb");
+                    memcpy(tabcol_file_name, showcmd_name(cmd), showcmd_name_len(cmd));
 
-                    show_tab_name(cmd)[show_tab_name_len(cmd)] = last_ch;
-
-                    if (tab_file == NULL) {
+                    if (access(tabcol_file_name, F_OK) != 0) {
+                        free(tabcol_file_name);
                         return __ENGINE_ERR__(ShowTabNotExist);
                     }
 
-                    CDBDiskTableHeader* disk_table_header = calloc(1, sizeof(CDBDiskTableHeader));
+                    FILE* tab_file = fopen(tabcol_file_name, "rb");
 
-                    fread(disk_table_header, sizeof(CDBDiskTableHeader), 1, tab_file);
+                    memcpy(&tabcol_file_name[showcmd_name_len(cmd)], ".columns", sizeof(".columns") - 1);
+
+                    if (access(tabcol_file_name, F_OK) != 0) {
+                        free(tabcol_file_name);
+                        fclose(tab_file);
+                        return __ENGINE_ERR__(ShowTabNotExist);
+                    }
+
+                    FILE* col_file = fopen(tabcol_file_name, "rb");
+
+                    CDBDiskTableHeader disk_table_header = { 0 };
+
+                    fread(&disk_table_header, sizeof(CDBDiskTableHeader), 1, tab_file);
 
                     switch (cmd->_cdb_cmd._show_cmd._show_detail_type) {
-                        case __ATTR__(TableColumns):
+                        case __ATTR__(TableColumns): {
                             size_t col_num;
-                            CDBTableColumn col = { ._col_name = malloc(sizeof(CStringRef)) };
+                            CStringRef col_name_ref = { 0 };
+                            CDBTableColumn col = { ._col_name = &col_name_ref };
 
-                            memcpy(&col_num, disk_table_header->_tab_cols_num, sizeof(size_t));
+                            memcpy(&col_num, disk_table_header._tab_cols_num, sizeof(size_t));
 
                             fprintf(stdout, "Table ");
-                            fwrite(show_tab_name(cmd), sizeof(char), show_tab_name_len(cmd), stdout);
+                            fwrite(showcmd_name(cmd), sizeof(char), showcmd_name_len(cmd), stdout);
                             fprintf(stdout, "'s Columns [");
 
                             for (size_t col_id = 0; col_id < col_num; ++col_id) {
-                                memcpy(&col._col_type, disk_table_header->_tab_cols[col_id]._col_type, sizeof(col._col_type));
+                                unsigned char col_name_len;
+                                CDBDiskTableColumn disk_col;
 
-                                col._col_name->_cstr_ref = disk_table_header->_tab_cols[col_id]._col_name;
-                                col._col_name->_cstr_ref_len = strlen(disk_table_header->_tab_cols[col_id]._col_name);
+                                fread(&disk_col, sizeof(CDBDiskTableColumn), 1, col_file);
+
+                                col._col_name->_cstr_ref = disk_col._col_name;
+                                memcpy(&col_name_len, disk_col._col_name_len, sizeof(unsigned char));
+                                col._col_name->_cstr_ref_len = col_name_len;
+
+                                memcpy(&col._col_type, disk_col._col_type, sizeof(CDBTableColumnType));
 
                                 kv_tabcol_fprint_nocheck(stdout, &col);
                                 fprintf(stdout, ", ");
                             }
 
                             fprintf(stdout, "\b\b]\n");
-
-                            free(col._col_name);
                             break;
-                        case __ATTR__(TableRows):
+                        }
+                        case __ATTR__(TableRows): {
                             break;
+                        }
                         default:
                             return __ENGINE_ERR__(ShowCmdAttrType);
                     }
 
-                    free(disk_table_header);
+                    free(tabcol_file_name);
                     fclose(tab_file);
+                    fclose(col_file);
                     break;
-                case __HIER__(DataBase):
+                }
+                case __HIER__(DataBase): {
                     break;
+                }
                 default:
                     return __ENGINE_ERR__(ShowCmdType);
             }

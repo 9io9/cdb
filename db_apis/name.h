@@ -21,6 +21,9 @@
 #define __SHELL_ERR__(e) CDBShell ## e ## Error
 #define __SHELL_SUCCESS__ CDBShellSuccess
 
+#define __BUF_ERR__(e) CDBBuffer ## e ## Error
+#define __BUF_SUCCESS__ CDBBufferSuccess
+
 #define FUNC_ASSERT(...)
 
 #endif //NAME_H

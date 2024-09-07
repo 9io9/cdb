@@ -8,8 +8,8 @@
 #include "../third_party/cstr/cstr.h"
 
 #include "../db_engine/table.def.h"
-#include "../db_display/display.h"
 #include "../db_apis/name.h"
+#include "../db_apis/access_func.h"
 
 #include "parser.err.h"
 #include "parser.def.h"
@@ -69,6 +69,10 @@ CDBParserStatusCode parse_tab_cols(CStringRef* tokens, size_t tokens_size, size_
 
             col._col_name = &tokens[*token_id];
 
+            if (col._col_name->_cstr_ref_len > TABCOL_NAME_MAX) {
+                return __PARSER_ERR__(TabColNameLen);
+            }
+
             if (tokens[*token_id + 1]._cstr_ref[0] != ':') {
                 cvla_free_nocheck(cols);
                 return __PARSER_ERR__(TabColFmt);
@@ -107,7 +111,7 @@ CDBParserStatusCode parse_tokens(CStringRef* tokens, size_t tokens_size, CDBCmd*
             if (cstr_ref_cmp_str_nocheck(&tokens[token_id], "table", sizeof("table") - 1, &token_cmp_res) == CStrOpSuccess) {
                 if (token_cmp_res == 0 && token_id + 2 < tokens_size) {
                     cmd->_cdb_cmd._crt_cmd._crt_type = __HIER__(Table);
-                    cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_name = &tokens[++token_id];
+                    crtcmd_set_tabname(cmd, &tokens[++token_id]);
 
                     if (tokens[++token_id]._cstr_ref[0] != '(') {
                         return __PARSER_ERR__(CrtTabFmt);
@@ -115,19 +119,19 @@ CDBParserStatusCode parse_tokens(CStringRef* tokens, size_t tokens_size, CDBCmd*
 
                     token_id += 1;
 
-                    CDBParserStatusCode col_status = parse_tab_cols(tokens, tokens_size, &token_id, &cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_cols);
+                    CDBParserStatusCode col_status = parse_tab_cols(tokens, tokens_size, &token_id, crtcmd_tabcols_cvla_ref(cmd));
 
                     if (col_status != __PARSER_SUCCESS__) {
                         return col_status;
                     }
 
-                    if (cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_cols->_cvla_sz == 0) {
-                        cvla_free_nocheck(&cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_cols);
+                    if (crtcmd_tabcols_size(cmd) == 0) {
+                        cvla_free_nocheck(crtcmd_tabcols_cvla_ref(cmd));
                         return __PARSER_ERR__(CrtTabFmt);
                     }
 
                     if (token_id < tokens_size) {
-                        cvla_free_nocheck(&cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_cols);
+                        cvla_free_nocheck(crtcmd_tabcols_cvla_ref(cmd));
                         return __PARSER_ERR__(CmdFmt);
                     }
 
@@ -235,6 +239,10 @@ CDBParserStatusCode parse_tab_cols_nocheck(CStringRef* tokens, size_t tokens_siz
 
             col._col_name = &tokens[*token_id];
 
+            if (col._col_name->_cstr_ref_len > TABCOL_NAME_MAX) {
+                return __PARSER_ERR__(TabColNameLen);
+            }
+
             if (tokens[*token_id + 1]._cstr_ref[0] != ':') {
                 cvla_free_nocheck(cols);
                 return __PARSER_ERR__(TabColFmt);
@@ -269,7 +277,7 @@ CDBParserStatusCode parse_tokens_nocheck(CStringRef* tokens, size_t tokens_size,
             if (cstr_ref_cmp_str_nocheck(&tokens[token_id], "table", sizeof("table") - 1, &token_cmp_res) == CStrOpSuccess) {
                 if (token_cmp_res == 0 && token_id + 2 < tokens_size) {
                     cmd->_cdb_cmd._crt_cmd._crt_type = __HIER__(Table);
-                    cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_name = &tokens[++token_id];
+                    crtcmd_set_tabname(cmd, &tokens[++token_id]);
 
                     if (tokens[++token_id]._cstr_ref[0] != '(') {
                         return __PARSER_ERR__(CrtTabFmt);
@@ -277,19 +285,19 @@ CDBParserStatusCode parse_tokens_nocheck(CStringRef* tokens, size_t tokens_size,
 
                     token_id += 1;
 
-                    CDBParserStatusCode col_status = parse_tab_cols(tokens, tokens_size, &token_id, &cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_cols);
+                    CDBParserStatusCode col_status = parse_tab_cols(tokens, tokens_size, &token_id, crtcmd_tabcols_cvla_ref(cmd));
 
                     if (col_status != __PARSER_SUCCESS__) {
                         return col_status;
                     }
 
-                    if (cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_cols->_cvla_sz == 0) {
-                        cvla_free_nocheck(&cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_cols);
+                    if (crtcmd_tabcols_size(cmd) == 0) {
+                        cvla_free_nocheck(crtcmd_tabcols_cvla_ref(cmd));
                         return __PARSER_ERR__(CrtTabFmt);
                     }
 
                     if (token_id < tokens_size) {
-                        cvla_free_nocheck(&cmd->_cdb_cmd._crt_cmd._cmd._tab._tab_cols);
+                        cvla_free_nocheck(crtcmd_tabcols_cvla_ref(cmd));
                         return __PARSER_ERR__(CmdFmt);
                     }
 
