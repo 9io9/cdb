@@ -14,7 +14,8 @@
 
 static const char* COL_TYPE_STRS[] = {
     "Int",
-    "CArr",
+    "Str",
+    "Uint",
 };
 
 CDBDisplayStatusCode kv_ref_fprint(FILE* f, const char* key, CStringRef* value) {

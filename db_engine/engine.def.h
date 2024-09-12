@@ -10,6 +10,7 @@
 typedef enum CDBFileType {
     CDBTableFile = 0,
     CDBTabIndexFile,
+    CDBColFile,
 }CDBFileType;
 
 #endif //ENGINE_DEF_H

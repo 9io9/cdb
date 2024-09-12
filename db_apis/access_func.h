@@ -49,5 +49,8 @@ static inline size_t showcmd_name_len(CDBCmd* cmd) {
     return cmd->_cdb_cmd._show_cmd._name->_cstr_ref_len;
 }
 
+static inline size_t inscmd_rows_size(CDBCmd* cmd) {
+    return cmd->_cdb_cmd._insert_cmd._insert_row->_cvla_sz;
+}
 
 #endif //ACCESS_FUNC_H

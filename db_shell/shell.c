@@ -11,7 +11,7 @@
 
 #include "shell.err.h"
 
-static const char* SPEC_CHARSET = ",():";
+static const char* SPEC_CHARSET = ",:";
 static const char* SEP_CHARSET = "_@$#";
 
 static bool is_spec(char ch) {
@@ -42,6 +42,8 @@ CDBShellStatusCode read_line(FILE* f, CString* linebuffer) {
     fprintf(stdout, "cdb>");
 
     char input_ch;
+    int str_sep_num = 0;
+    int lp_num = 0;
 
     while ((input_ch = fgetc(f)) != ';') {
         if (input_ch == ' ') {
@@ -50,6 +52,15 @@ CDBShellStatusCode read_line(FILE* f, CString* linebuffer) {
                     cstr_pushc_nocheck(input_ch, linebuffer);
                 }
             }
+        } else if (input_ch == '\'') {
+            str_sep_num += str_sep_num == 0 ? 1 : -1;
+        } else if (input_ch == '(') {
+            lp_num += 1;
+        } else if (input_ch == ')') {
+            if (lp_num == 0) {
+                return __SHELL_ERR__(SepNoMatch);
+            }
+            lp_num -= 1;
         } else if (is_spec(input_ch)) {
             if (linebuffer->_cstr_sz == 0) {
                 cstr_pushc_nocheck(input_ch, linebuffer);
@@ -76,6 +87,10 @@ CDBShellStatusCode read_line(FILE* f, CString* linebuffer) {
     }
 
     fflush(stdin);
+
+    if (str_sep_num != 0 || lp_num != 0) {
+        return __SHELL_ERR__(SepNoMatch);
+    }
 
     return __SHELL_SUCCESS__;
 }

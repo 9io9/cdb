@@ -9,8 +9,9 @@
 #include "../third_party/cvla/cvla.def.h"
 
 typedef enum CDBTableColumnType {
-    Integer = 0,
-    CharArray
+    Int = 0,
+    Str,
+    UInt,
 }CDBTableColumnType;
 
 typedef struct CDBTableColumn {
@@ -40,6 +41,15 @@ typedef struct CDBTableHeader {
     size_t _tab_end_offset;
     CVLArray* _tab_cols;
 }CDBTableHeader;
+
+typedef struct CDBTableRow {
+    CDBTableColumnType _row_type;
+    union {
+        size_t _row_uint;
+        ssize_t _row_int;
+        CStringRef* _row_str;
+    }_row;
+}CDBTableRow;
 
 typedef struct CDBDiskTableHeader {
     char _file_type[8];

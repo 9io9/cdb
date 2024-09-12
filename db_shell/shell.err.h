@@ -10,6 +10,7 @@
 typedef enum CDBShellStatusCode {
     __NAME__(Success) = 0,
     __NAME__(InvalidCharError),
+    __NAME__(SepNoMatchError),
     __NAME__(FuncArgError),
 }CDBShellStatusCode;
 

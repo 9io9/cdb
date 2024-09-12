@@ -39,13 +39,15 @@ typedef enum CDBAttrType {
 
 #undef __NAME__
 
+typedef struct CDBCreateTableCommand {
+    CStringRef* _tab_name;
+    CVLArray* _tab_cols;
+}CDBCreateTableCommand;
+
 typedef struct CDBCreateCmd {
     CDBHierachyType _crt_type;
     union {
-        struct CreateTableCommand {
-            CStringRef* _tab_name;
-            CVLArray* _tab_cols;
-        }_tab;
+        CDBCreateTableCommand _tab;
     }_cmd;
 }CDBCreateCmd;
 
@@ -55,11 +57,18 @@ typedef struct CDBShowCmd {
     CStringRef* _name;
 }CDBShowCmd;
 
+typedef struct CDBInsertCmd {
+    CDBAttrType _insert_type;
+    CStringRef* _insert_name;
+    CVLArray* _insert_row;
+}CDBInsertCmd;
+
 typedef struct CDBCmd {
     CDBCmdType _cdb_cmd_type;
     union {
         CDBCreateCmd _crt_cmd;
         CDBShowCmd _show_cmd;
+        CDBInsertCmd _insert_cmd;
     }_cdb_cmd;
 }CDBCmd;
 

@@ -19,6 +19,113 @@
 #include "engine.def.h"
 #include "engine.err.h"
 
+CDBEngineStatusCode tabmeta_m2d(const char* tab_fname, const char* tabcol_fname, CDBTableColumn* cols, size_t cols_sz) {
+    if (tab_fname == NULL || tabcol_fname == NULL || cols == NULL || cols_sz == 0) {
+        return __ENGINE_ERR__(FuncArg);
+    }
+
+    if (access(tab_fname, F_OK) == 0 || access(tabcol_fname, F_OK) == 0) {
+        return __ENGINE_ERR__(CrtDupTab);
+    }
+
+    time_t time_stamp = time(NULL);
+    size_t col_offset = DISKPG_SIZE;
+    CDBFileType ftype = CDBTableFile;
+    CDBDiskTableHeader disk_tabhdr = { 0 };
+
+    CDBDiskTableColumn* disk_cols = malloc(sizeof(*disk_cols) * cols_sz);
+
+    memcpy(disk_tabhdr._file_type, &ftype, sizeof(CDBFileType));
+    memcpy(disk_tabhdr._tab_cols_num, &cols_sz, sizeof(size_t));
+    memcpy(disk_tabhdr._tab_crt_timestamp, &time_stamp, sizeof(time_t));
+
+    for (size_t col_id = 0; col_id < cols_sz; ++col_id) {
+        unsigned char col_name_len = cols[col_id]._col_name->_cstr_ref_len;
+
+        memcpy(disk_cols[col_id]._col_type, &cols[col_id]._col_type, sizeof(CDBTableColumnType));
+        memcpy(disk_cols[col_id]._col_name, cols[col_id]._col_name->_cstr_ref, cols[col_id]._col_name->_cstr_ref_len);
+        memcpy(disk_cols[col_id]._col_name_len, &col_name_len, sizeof(unsigned char));
+        memcpy(disk_cols[col_id]._col_offset, &col_offset, sizeof(size_t));
+
+        // will not overflow, col_name's len in disk equals actual len + 1
+        disk_cols[col_id]._col_name[cols[col_id]._col_name->_cstr_ref_len] = '\0';
+        col_offset += DISKPG_SIZE;
+    }
+
+    FILE* tab_file = fopen(tab_fname, "wb+");
+    FILE* col_file = fopen(tabcol_fname, "wb+");
+
+    fwrite(&disk_tabhdr, sizeof(CDBDiskTableHeader), 1, tab_file);
+    fwrite(disk_cols, sizeof(CDBDiskTableColumn), cols_sz, col_file);
+
+    fflush(tab_file);
+    fflush(col_file);
+
+    free(disk_cols);
+    fclose(tab_file);
+    fclose(col_file);
+
+    return __ENGINE_SUCCESS__;
+}
+
+CDBEngineStatusCode tabmeta_m2d_nocheck(const char* tab_fname, const char* tabcol_fname, CDBTableColumn* cols, size_t cols_sz) {
+    if (access(tab_fname, F_OK) == 0 || access(tabcol_fname, F_OK) == 0) {
+        return __ENGINE_ERR__(CrtDupTab);
+    }
+
+    time_t time_stamp = time(NULL);
+    size_t col_offset = DISKPG_SIZE;
+    CDBFileType ftype = CDBTableFile;
+    CDBDiskTableHeader disk_tabhdr = { 0 };
+
+    CDBDiskTableColumn* disk_cols = malloc(sizeof(*disk_cols) * cols_sz);
+
+    memcpy(disk_tabhdr._file_type, &ftype, sizeof(CDBFileType));
+    memcpy(disk_tabhdr._tab_cols_num, &cols_sz, sizeof(size_t));
+    memcpy(disk_tabhdr._tab_crt_timestamp, &time_stamp, sizeof(time_t));
+
+    for (size_t col_id = 0; col_id < cols_sz; ++col_id) {
+        unsigned char col_name_len = cols[col_id]._col_name->_cstr_ref_len;
+
+        memcpy(disk_cols[col_id]._col_type, &cols[col_id]._col_type, sizeof(CDBTableColumnType));
+        memcpy(disk_cols[col_id]._col_name, cols[col_id]._col_name->_cstr_ref, cols[col_id]._col_name->_cstr_ref_len);
+        memcpy(disk_cols[col_id]._col_name_len, &col_name_len, sizeof(unsigned char));
+        memcpy(disk_cols[col_id]._col_offset, &col_offset, sizeof(size_t));
+
+        // will not overflow, col_name's len in disk equals actual len + 1
+        disk_cols[col_id]._col_name[cols[col_id]._col_name->_cstr_ref_len] = '\0';
+        col_offset += DISKPG_SIZE;
+    }
+
+    FILE* tab_file = fopen(tab_fname, "wb+");
+    FILE* col_file = fopen(tabcol_fname, "wb+");
+
+    fwrite(&disk_tabhdr, sizeof(CDBDiskTableHeader), 1, tab_file);
+    fwrite(disk_cols, sizeof(CDBDiskTableColumn), cols_sz, col_file);
+
+    fflush(tab_file);
+    fflush(col_file);
+
+    free(disk_cols);
+    fclose(tab_file);
+    fclose(col_file);
+
+    return __ENGINE_SUCCESS__;
+}
+
+static void crtcmd_fnames(char** tab_fname, char** col_fname, CDBCmd* cmd) {
+    size_t name_buffer_len = (crtcmd_tabname_len(cmd) << 1) + sizeof(".columns") + 1;
+    char* name_buffer = calloc(1, name_buffer_len);
+
+    memcpy(name_buffer, crtcmd_tabname(cmd), crtcmd_tabname_len(cmd));
+    name_buffer[crtcmd_tabname_len(cmd)] = '\0';
+    memcpy(&name_buffer[crtcmd_tabname_len(cmd) + 1], crtcmd_tabname(cmd), crtcmd_tabname_len(cmd));
+    memcpy(&name_buffer[(crtcmd_tabname_len(cmd) << 1) + 1], ".columns", sizeof(".columns") - 1);
+    name_buffer[name_buffer_len - 1] = '\0';
+
+    *tab_fname = name_buffer;
+    *col_fname = &name_buffer[crtcmd_tabname_len(cmd) + 1];
+}
 
 CDBEngineStatusCode exec_command(CDBCmd* cmd) {
     if (cmd == NULL) {
@@ -29,66 +136,17 @@ CDBEngineStatusCode exec_command(CDBCmd* cmd) {
         case __CMD__(Create):
             switch (cmd->_cdb_cmd._crt_cmd._crt_type) {
                 case __HIER__(Table): {
-                    char* tabcol_file_name = calloc(1, crtcmd_tabname_len(cmd) + sizeof(".columns"));
+                    char* tab_fname, *col_fname;
 
-                    memcpy(tabcol_file_name, crtcmd_tabname(cmd), crtcmd_tabname_len(cmd));
+                    // get table file name, table columns file name
+                    crtcmd_fnames(&tab_fname, &col_fname, cmd);
 
-                    if (access(tabcol_file_name, F_OK) == 0) {
-                        free(tabcol_file_name);
-                        return __ENGINE_ERR__(CrtDupTab);
-                    }
+                    // dump table header and columns into table file and columns file
+                    tabmeta_m2d_nocheck(tab_fname,col_fname,crtcmd_tabcols(cmd),crtcmd_tabcols_size(cmd));
 
-                    FILE* tab_file = fopen(tabcol_file_name, "wb+");
+                    fprintf(stdout, "Table %s Created\n", tab_fname);
 
-                    memcpy(&tabcol_file_name[crtcmd_tabname_len(cmd)], ".columns", sizeof(".columns") - 1);
-
-                    if (access(tabcol_file_name, F_OK) == 0) {
-                        free(tabcol_file_name);
-                        fclose(tab_file);
-                        return __ENGINE_ERR__(CrtDupTab);
-                    }
-
-                    FILE* col_file = fopen(tabcol_file_name, "wb+");
-
-                    time_t timestamp;
-                    size_t end_offset = DISKPG_SIZE;
-                    CDBFileType file_type = CDBTableFile;
-                    CDBDiskTableHeader disk_table_header = { 0 };
-
-                    time(&timestamp);
-
-                    memcpy(disk_table_header._tab_cols_num, crtcmd_tabcols_size_ref(cmd), sizeof(size_t));
-                    memcpy(disk_table_header._file_type, &file_type, sizeof(CDBFileType));
-                    memcpy(disk_table_header._tab_crt_timestamp, &timestamp, sizeof(time_t));
-
-                    for (size_t col_id = 0; col_id < crtcmd_tabcols_size(cmd); ++col_id) {
-                        CDBDiskTableColumn col;
-
-                        memcpy(col._col_name, crtcmd_tabcols(cmd)[col_id]._col_name->_cstr_ref, crtcmd_tabcols(cmd)[col_id]._col_name->_cstr_ref_len);
-                        col._col_name[TABCOL_NAME_MAX] = '\0';
-
-                        memcpy(col._col_name_len, &crtcmd_tabcols(cmd)[col_id]._col_name->_cstr_ref_len, sizeof(size_t));
-                        memcpy(col._col_type, &crtcmd_tabcols(cmd)[col_id]._col_type, sizeof(CDBTableColumnType));
-                        memcpy(col._col_offset, &end_offset, sizeof(size_t));
-
-                        fwrite(&col, sizeof(CDBDiskTableColumn), 1, col_file);
-                        end_offset += DISKPG_SIZE;
-                    }
-
-                    memcpy(disk_table_header._tab_end_offset, &end_offset, sizeof(size_t));
-
-                    fwrite(&disk_table_header, sizeof(char), sizeof(CDBDiskTableHeader), tab_file);
-
-                    cvla_clean_nocheck(crtcmd_tabcols_cvla(cmd));
-                    free(tabcol_file_name);
-                    fflush(col_file);
-                    fclose(col_file);
-                    fflush(tab_file);
-                    fclose(tab_file);
-
-                    fprintf(stdout, "Table ");
-                    fwrite(crtcmd_tabname(cmd), sizeof(char), crtcmd_tabname_len(cmd), stdout);
-                    fprintf(stdout, " Created\n");
+                    free(tab_fname);
                     break;
                 }
                 case __HIER__(DataBase): {

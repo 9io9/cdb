@@ -38,6 +38,10 @@ static void cdb_main(int argc, char* argv[]) {
                 cstr_clean_nocheck(linebuffer);
                 continue;
 
+            case __SHELL_ERR__(SepNoMatch):
+                PERR("Invalid Input: seprator not matched");
+                cstr_clean_nocheck(linebuffer);
+                continue;
             case __SHELL_SUCCESS__:
                 break;
 
@@ -69,6 +73,9 @@ static void cdb_main(int argc, char* argv[]) {
                             case __ENGINE_ERR__(ShowCmdAttrType):
                                 PERR("Command ExecErr: Unknown Show Command Attr");
                                 break;
+                            case __ENGINE_ERR__(ShowTabNotExist):
+                                PERR("Command ExecErr: Table not exist");
+                                break;
                             default:
                                 break;
                         }
@@ -89,6 +96,12 @@ static void cdb_main(int argc, char* argv[]) {
                 if (cstr_cmp_str_nocheck(linebuffer, "exit", sizeof("exit") - 1, &cmp_res) == CStrOpSuccess) {
                     if (cmp_res == 0) {
                         exit(CDBSuccess);
+                    }
+                } else if (cstr_cmp_str_nocheck(linebuffer, "info", sizeof("info") - 1, &cmp_res) == CStrOpSuccess) {
+                    if (cmp_res == 0) {
+                        // TODO: db info [mem usage, existed databases and tables, version...)
+                        fprintf(stdout, "cdb version: 0.0.1\n");
+                        break;
                     }
                 }
 
