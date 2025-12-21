@@ -4,7 +4,7 @@
 
 #include <stdbool.h>
 
-#define CAST(x, type) ((type) (x)) 
+#define CAST(x, type) ((type)(x))
 
 #if __SIZEOF_POINTER__ == 8
 

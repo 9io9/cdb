@@ -5,36 +5,28 @@
 #include "utils/tui.h"
 #include "utils/vector.h"
 
-typedef enum {
-    Chars,
-    Integer,
-    Json,
-    Binary,
-    Array
-}ColumnType;
+typedef enum { CharsColumn, IntegerColumn, JsonColumn, BinaryColumn, ArrayColumn } ColumnType;
 
 typedef struct {
     ColumnType column_type;
     String column_name;
-}ColumnDecl;
+} ColumnDecl;
 
 typedef struct {
     String table_name;
     Vector columns; // vector of ColumnDecl
-}CrtTabSql;
+} CrtTabSql;
 
-typedef enum {
-    CreateTable
-}SqlType;
+typedef enum { CreateTable } SqlType;
 
 typedef struct {
     SqlType sql_type;
     union {
         CrtTabSql create_table_sql;
-    }sql;
-}Sql;
+    } sql;
+} Sql;
 
-errinfo parse_sql(String* line, Sql* sql) {
+errinfo parse_sql(String *line, Sql *sql) {
     // TODO: parse line and form Sql structure for exectution
 }
 
